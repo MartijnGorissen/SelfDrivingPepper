@@ -2,6 +2,8 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.preprocessing import MinMaxScaler
 from PIL import Image
 from IPython.display import display
 import os
@@ -88,35 +90,35 @@ def image_overview(folder, image, sep="|"):
     """
     try:
         # Kijken of de folder klopt
-        if not os.path.exists(folder):
+        if not os.path.exists(f"D:/{folder}"):
             raise FileNotFoundError("Folder niet gevonden.")
 
         # Kijken of alle bestanden aanwezig zijn
-        if not os.path.exists(f"{folder}/front/{image}.png"):
+        if not os.path.exists(f"D:/{folder}/front/{image}.png"):
             raise FileNotFoundError(
                 "Afbeelding niet gevonden in front directory."
                 )
 
-        if not os.path.exists(f"{folder}/left/{image}.png"):
+        if not os.path.exists(f"D:/{folder}/left/{image}.png"):
             raise FileNotFoundError(
                 "Afbeelding niet gevonden in left directory."
                 )
 
-        if not os.path.exists(f"{folder}/right/{image}.png"):
+        if not os.path.exists(f"D:/{folder}/right/{image}.png"):
             raise FileNotFoundError(
                 "Afbeelding niet gevonden in right directory."
                 )
 
-        if not os.path.exists(f"{folder}/recording.csv"):
+        if not os.path.exists(f"D:/{folder}/recording.csv"):
             raise FileNotFoundError(
                 "CSV-bestand is niet gevonden."
                 )
 
         # Als alles lukt, laad de afbeeldingen in
-        img_front = Image.open(f"{folder}/front/{image}.png")
-        img_left = Image.open(f"{folder}/left/{image}.png")
-        img_right = Image.open(f"{folder}/right/{image}.png")
-        df = pd.read_csv(f"{folder}/recording.csv", sep=sep)
+        img_front = Image.open(f"D:/{folder}/front/{image}.png")
+        img_left = Image.open(f"D:/{folder}/left/{image}.png")
+        img_right = Image.open(f"D:/{folder}/right/{image}.png")
+        df = pd.read_csv(f"D:/{folder}/recording.csv", sep=sep)
 
     except FileNotFoundError as e:
         print(f"Bestand niet gevonden: {e}")
@@ -179,6 +181,97 @@ def data_selection(df, start, end):
     return data
 
 
+def lijngrafieken(df):
+    """
+    Deze functie toont een series van grafieken, gelijk aan het
+    aantal kolommen dat geen "Timestamp" heet.
+
+    Parameters:
+    ----------
+    df : pd.DataFrame
+        Het dataframe dat de "Timestamp" kolom bevat
+    """
+    # Bepaal de grootte van de grafiek
+    plt.figure(figsize=(15, 9))
+
+    # Berekenen aan kolommen - "Timestamp"
+    num_cols = len(df.columns) - 1
+
+    # Loop over de kolommen, behalve "Timestamp"
+    for i, column in enumerate(df.columns):
+        if column != "Timestamp":
+            # Genereer een subplot op basis van het aantal kolommen
+            ax = plt.subplot(num_cols, 1, i)
+
+            # Maken van een lineplot
+            sns.lineplot(data=df, x="Timestamp", y=column, ax=ax)
+
+            # Labelen van de assen
+            plt.xlabel("Timestamp")
+            plt.ylabel(column, rotation=0)
+            ax.yaxis.set_label_coords(-0.12, 0.5)
+
+    # Aanpassen van de layout voor mooiere grafieken
+    plt.suptitle("Grafieken van opgevraagde ronde", fontsize=16, y=1)
+    plt.tight_layout()
+    plt.subplots_adjust(hspace=0.9)
+    plt.show()
+
+
+def scaled_vergelijking(df, kolom1="Steering", kolom2="SteeringSensor"):
+    """
+    Deze functie scaled de data tussen -1 en 1 om zo de kolommen
+    gemakkelijk te kunnen vergelijken. De standaard kolommen zijn
+    "Steering" en "SteeringSensor" omdat deze kolommen normaal erg
+    verschillende waarden hebben. Op deze manier konden ze gemakkelijk
+    vergeleken worden.
+
+    Parameters:
+    ----------
+    df : pd.DataFrame
+        Het dataframe dat de "Timestamp" kolom en de te vergelijken
+        kolommen bevat
+
+    kolom1 : str (optioneel) default="Steering"
+        De kolomnaam van kolom 1
+
+    kolom2 : str (optioneel) default="SteeringSensor"
+        De kolomnaam van kolom 2
+    """
+    # Copy het originele dataframe
+    scaled = df.copy()
+
+    # Scale de data tussen -1 en 1
+    scaler = MinMaxScaler(feature_range=(-1, 1))
+    scaled[[kolom1, kolom2]] = scaler.fit_transform(scaled[[kolom1, kolom2]])
+
+    # Bepaal de grootte van de grafiek
+    plt.figure(figsize=(20, 6))
+
+    # Plot de lijnen van de grafiek
+    sns.lineplot(
+        data=scaled, x="Timestamp", y=kolom1, color='orange', label=kolom1
+        )
+    sns.lineplot(
+        data=scaled, x="Timestamp", y=kolom2, color='green', label=kolom2
+        )
+
+    # Labelen van de assen en titel
+    plt.xlabel("Timestamp")
+    plt.ylabel("Waarde van kolommen (scaled)")
+    plt.title(f"Vergelijking tussen {kolom1} en {kolom2}")
+
+    # Aanmaken legenda onder titel
+    handles, labels = plt.gca().get_legend_handles_labels()
+    plt.gca().legend_.remove()
+    plt.figlegend(
+        handles, labels, loc='upper center',
+        ncol=2, bbox_to_anchor=(0.515, 1), frameon=False
+        )
+    plt.subplots_adjust(top=0.9)
+    plt.show()
+
+
 def load_images(df, image_folder):
     """
     Deze functie laad de afbeelding in die overeenkomen met de Timestamps
@@ -219,7 +312,7 @@ def load_images(df, image_folder):
     return images
 
 
-def img_to_vid(images, output_vid_pad, data, fps=30.0):
+def img_to_vid(images, output_vid_pad, df, fps=30.0):
     """
     Deze functie is in staat om afbeelding om te zetten in een video.
     Deze video kan eventueel voor andere doeleinden worden gebruikt.
@@ -245,7 +338,7 @@ def img_to_vid(images, output_vid_pad, data, fps=30.0):
     """
     # Filtreren data op images
     timestamps = [float(timestamp) for timestamp in images.keys()]
-    data = data[data['Timestamp'].isin(timestamps)]
+    data = df[df['Timestamp'].isin(timestamps)]
 
     # Verkrijg de dimensies van de afbeeldingen
     timestamp, first_image = next(iter(images.items()))
