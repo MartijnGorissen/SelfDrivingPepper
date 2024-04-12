@@ -34,9 +34,9 @@ class LaneLines:
         self.nonzeroy = None
         self.clear_visibility = True
         self.dir = []
-        self.left_curve_img = mpimg.imread('left_turn.png')
-        self.right_curve_img = mpimg.imread('right_turn.png')
-        self.keep_straight_img = mpimg.imread('straight.png')
+        self.left_curve_img = None
+        self.right_curve_img = None
+        self.keep_straight_img = None
         self.left_curve_img = cv2.normalize(src=self.left_curve_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
         self.right_curve_img = cv2.normalize(src=self.right_curve_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
         self.keep_straight_img = cv2.normalize(src=self.keep_straight_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
@@ -311,7 +311,7 @@ class LaneLines:
 
         return left_curveR, right_curveR, pos
     
-    def forward(self, img, img_size=(848, 480), flags=cv2.INTER_LINEAR):
+    def forward_b(self, img, img_size=(848, 480), flags=cv2.INTER_LINEAR):
         """ Take a front view image and transform to top view
 
         Parameters:
@@ -352,7 +352,7 @@ class LaneLines:
     def process_image_to_instructie(self, input):
         img = input
         #stap 1 birdeye
-        img1 = self.forward(img)
+        img1 = self.forward_b(img)
 
         #stap 2 line detectie
         hls = cv2.cvtColor(img1, cv2.COLOR_RGB2HLS)
@@ -367,13 +367,12 @@ class LaneLines:
         img2 = left_lane | right_lane
 
         #stap 3 lane detectie
-        img3, left_curve, right_curve, pos = self.forward(img2)
+        img3, left_curve, right_curve, pos = self.forward_b(img2)
 
         #stap 4
         steering_angle = pos*-1
         throttle = 0.3
         brake = 0 
 
-        instructie = [steering_angle, throttle, brake]
-        return instructie
+        return steering_angle, throttle, brake
 
