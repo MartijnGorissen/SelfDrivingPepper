@@ -15,8 +15,8 @@ import easyocr
 reader = easyocr.Reader(['en'])
 CAN_MSG_SENDING_SPEED = .040
 MAX_SPEED = 120
-class_naam = "TrafficSign"
-# model = YOLO("Model_Name.pt")
+class_naam = "snelheid"
+model = YOLO("best.pt")
 
 
 def get_bbox(results, class_name):
@@ -97,6 +97,26 @@ def read_speedsign(sign):
     return speed_hmu
 
 
+def speed_to_throttle(speed):
+    """
+    Veranderd de afgelezen snelheid naar throttle
+    op basis van percentages
+    """
+    # Percentage van throttle berekenen
+    throttle = round((MAX_SPEED / speed), 2)
+
+    # Throttle tussen max en min zetten
+    # Indien de throttle te hoog zou zijn
+    if throttle > 1.0:
+        throttle = 1.0
+    elif throttle < 0.0:
+        throttle = 0.0
+    else:
+        throttle = throttle
+
+    return throttle
+
+
 def handle_speedsign(image):
     """
     Behandeld het aflezen van speedsigns door
@@ -108,16 +128,21 @@ def handle_speedsign(image):
     # Ophalen van de Bounding Box
     bbox = get_bbox(results, class_naam)
 
-    # Snijden van de box naar afbeelding
-    sign = crop_bbox(image, bbox)
+    if bbox is not None:
+        # Snijden van de box naar afbeelding
+        sign = crop_bbox(image, bbox)
 
-    # Aflezen van de afbeelding
-    speed = read_speedsign(sign)
+        # Aflezen van de afbeelding
+        speed = read_speedsign(sign)
 
-    # Omzetten van snelheidslimiet naar throttle
-    # dmv maximum snelheid / snelheid voor % throttle
-    throttle = MAX_SPEED / speed
-    return throttle
+        # Omzetten van snelheidslimiet naar throttle
+        throttle = speed_to_throttle(speed)
+        return throttle, speed
+
+    else:
+        throttle = 1.0
+        speed = MAX_SPEED
+        return throttle, speed
 
 
 def initialize_cameras() -> Dict[str, cv2.VideoCapture]:
@@ -132,49 +157,34 @@ def initialize_cameras() -> Dict[str, cv2.VideoCapture]:
     for camera_type, path in config.items():
         capture = cv2.VideoCapture(path)
         capture.set(cv2.CAP_PROP_FRAME_WIDTH, 848)
-        capture.set(cv2.CAP_PROP_FRAME_HEIGHT,480)
+        capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
         capture.set(cv2.CAP_PROP_AUTOFOCUS, 0)
         capture.set(cv2.CAP_PROP_FOCUS, 0)
-        capture.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG')) #important to set right codec to enable 60fps
-        capture.set(cv2.CAP_PROP_FPS, 30) #make 60 to enable 60FPS
+        capture.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
+        capture.set(cv2.CAP_PROP_FPS, 30)
         cameras[camera_type] = capture
     return cameras
 
-def initialize_can():
-    """
-    Set up the can bus interface
-    """
-    bus = can.Bus(interface='socketcan', channel='can0', bitrate=500000)
-    return bus
-    
+
 def main():
     print("Initializing....")
-    bus = initialize_can()
-    
+
     cameras = initialize_cameras()
     front_camera = cameras["front"]
-        
+
     try:
         print("Booting.....")
-        # Define messages
-        brake_msg = can.Message(arbitration_id=0x110, is_extended_id=False, data=[0, 0, 0, 0, 0, 0, 0, 0])
-        brake_task = bus.send_periodic(brake_msg, CAN_MSG_SENDING_SPEED)
-        steering_msg = can.Message(arbitration_id=0x220, is_extended_id=False, data=[0, 0, 0, 0, 0, 0, 0, 0])
-        steering_task = bus.send_periodic(steering_msg, CAN_MSG_SENDING_SPEED)
-        throttle_msg = can.Message(arbitration_id=0x330, is_extended_id=False, data=[0, 0, 0, 0, 0, 0, 0, 0])
-        throttle_task = bus.send_periodic(throttle_msg, CAN_MSG_SENDING_SPEED)
-
-        print("Running.....")
         # Start running
         start_time = time.time()
-        frame_count = 0  
-        try:
-            
+        frame_count = 0
 
-            temp = True
-            while temp == True:
+        print("Running.....")
+        try:
+            while True:
                 _, frame = front_camera.read()
-                temp = brake_or_drive(frame)
+                throttle, speed = handle_speedsign(frame)
+                print(f"Throttle is {throttle} by speedsign {speed}")
+                # sleep(0.5)
 
         except KeyboardInterrupt:
             pass
@@ -188,9 +198,7 @@ def main():
 
     finally:
         print("Stopping.....")
-        throttle_task.stop()
-        steering_task.stop()
-        brake_task.stop()
+
 
 if __name__ == '__main__':
     main()
