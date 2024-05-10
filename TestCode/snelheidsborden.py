@@ -93,7 +93,7 @@ def read_speedsign(sign):
     speed_limit = reader.readtext(sign_array)
 
     # Ophalen van de snelheid en omzetten naar hm/u
-    speed_hmu = speed_limit[0][1] * 10
+    speed_hmu = int(speed_limit[0][1]) * 10
     return speed_hmu
 
 
@@ -103,7 +103,7 @@ def speed_to_throttle(speed):
     op basis van percentages
     """
     # Percentage van throttle berekenen
-    throttle = round((MAX_SPEED / speed), 2)
+    throttle = round((speed / MAX_SPEED), 2)
 
     # Throttle tussen max en min zetten
     # Indien de throttle te hoog zou zijn
@@ -129,15 +129,18 @@ def handle_speedsign(image):
     bbox = get_bbox(results, class_naam)
 
     if bbox is not None:
-        # Snijden van de box naar afbeelding
-        sign = crop_bbox(image, bbox)
+        try:
+            # Snijden van de box naar afbeelding
+            sign = crop_bbox(image, bbox)
 
-        # Aflezen van de afbeelding
-        speed = read_speedsign(sign)
+            # Aflezen van de afbeelding
+            speed = read_speedsign(sign)
 
-        # Omzetten van snelheidslimiet naar throttle
-        throttle = speed_to_throttle(speed)
-        return throttle, speed
+            # Omzetten van snelheidslimiet naar throttle
+            throttle = speed_to_throttle(speed)
+            return throttle, speed
+        except:
+            pass
 
     else:
         throttle = 1.0
