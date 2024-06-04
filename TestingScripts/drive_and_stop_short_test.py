@@ -2,8 +2,9 @@ import numpy as np
 import can
 import struct
 from typing import Optional, Dict, List, Literal, Tuple
+import time
 
-CAN_MSG_SENDING_SPEED = 1
+CAN_MSG_SENDING_SPEED = .040
 instructie = [[0, 0.5, 0], [0, 0.6, 0], [0, 0.6, 0], [0, 0.7, 0], [0, 0.8, 0], [0, 0.9, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0], [0, 0, 1]]
 def initialize_can():
     """
@@ -36,6 +37,7 @@ def main(session):
                 brake_task.modify_data(brake_msg)
                 steering_task.modify_data(steering_msg)
                 throttle_task.modify_data(throttle_msg)
+                time.sleep(2)
                 
         except KeyboardInterrupt:
             pass
