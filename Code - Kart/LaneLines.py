@@ -367,12 +367,28 @@ class LaneLines:
         img2 = left_lane | right_lane
 
         #stap 3 lane detectie
-        img3, left_curve, right_curve, pos = self.forward_b(img2)
+        img3, left_curve, right_curve, pos = self.forward(img2)
 
         #stap 4
         steering_angle = pos*-1
-        throttle = 0.3
+        throttle = 0.5
         brake = 0 
 
-        return steering_angle, throttle, brake
+        # Generaliseren van steering angle
+        if steering_angle > 1.25:
+            steering_angle = 1.25
+            throttle = 0.2
+        elif steering_angle > 0.50:
+            steering_angle = steering_angle
+            throttle = 0.4
+        elif steering_angle < -0.5:
+            steering_angle = steering_angle
+            throttle = 0.4
+        elif steering_angle < -1.25:
+            steering_angle = -1.25
+            throttle = 0.2
+        else:
+            steering_angle = steering_angle
+
+        return steering_angle, throttle, brake, pos
 
