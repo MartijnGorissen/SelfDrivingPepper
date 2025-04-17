@@ -27,12 +27,10 @@ nc: 9  # Example: person, car, bicycle, traffic_light
 # --- REQUIRED ---
 # Class names in order corresponding to class_ids (0, 1, 2, ...)
 names:
-  - zebra
-  - rood
-  - groen
-  - mens
-  - snelheidsbord
   - auto
+  - groen
   - linksaf
-  - pion
+  - rood
+  - snelheidsbord
   - stop
+  - zebra
