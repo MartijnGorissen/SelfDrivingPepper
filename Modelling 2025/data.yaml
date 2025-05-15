@@ -1,31 +1,11 @@
-# train: ../train/images
-# val: ../valid/images
-# test: ../test/images
+path: dataset 
 
-# nc: 9
-# names: ['auto', 'groen', 'linksaf', 'mens', 'pion', 'rood', 'snelheidsbord', 'stop', 'zebra']
+train: train/images  
+val: val/images      
+test: test/images    
 
-# roboflow:
-#   workspace: sdc-uhkux
-#   project: labeling-gq3ot
-#   version: 1
-#   license: CC BY 4.0
-#   url: https://universe.roboflow.com/sdc-uhkux/labeling-gq3ot/dataset/1
+nc: 6
 
-# --- REQUIRED ---
-# Paths to image directories (relative to this YAML file or absolute)
-path: dataset # Base directory
-
-train: train/images  # Relative to 'path'
-val: val/images      # Relative to 'path' (Ensure folder is named 'val', not 'valid')
-test: test/images    # Relative to 'path', optional
-
-# --- REQUIRED ---
-# Number of classes (TOTAL number: old + new)
-nc: 7  # Example: person, car, bicycle, traffic_light
-
-# --- REQUIRED ---
-# Class names in order corresponding to class_ids (0, 1, 2, ...)
 names:
   - auto
   - groen
@@ -33,4 +13,3 @@ names:
   - rood
   - snelheidsbord
   - stop
-  - zebra
