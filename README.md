@@ -9,3 +9,5 @@ chmod +x ./install.bash
 ```bash
 ./install.bash
 ```
+
+3. Run script
